@@ -69,7 +69,9 @@ const isActive = true;`,
             this.recognition.lang = 'en-US';
             
             this.recognition.onstart = () => {
-                this.updateVoiceButton(true);
+                this.isListening = true;
+                this.voiceBtn.classList.add('listening');
+                this.voiceBtn.textContent = '🔴';
                 this.status.textContent = 'Listening... Speak now!';
                 this.transcript.textContent = 'Listening...';
             };
@@ -93,12 +95,15 @@ const isActive = true;`,
                 } else {
                     this.showError(`Speech recognition error: ${event.error}`);
                 }
-                this.updateVoiceButton(false);
+                this.isListening = false;
+                this.voiceBtn.classList.remove('listening');
+                this.voiceBtn.textContent = '🎤';
             };
             
             this.recognition.onend = () => {
                 this.isListening = false;
-                this.updateVoiceButton(false);
+                this.voiceBtn.classList.remove('listening');
+                this.voiceBtn.textContent = '🎤';
                 this.status.textContent = 'Hold SPACE to speak, release to execute';
             };
         } else {
@@ -123,7 +128,8 @@ const isActive = true;`,
                 console.error('Error starting recognition:', error);
                 this.isListening = false;
                 if (error.name === 'InvalidStateError') {
-                    this.updateVoiceButton(true);
+                    this.voiceBtn.classList.add('listening');
+                    this.voiceBtn.textContent = '🔴';
                 } else {
                     this.showError('Failed to start voice recognition');
                 }
@@ -213,13 +219,13 @@ const isActive = true;`,
             return { type: 'complex', prompt: command };
         }
         
-        // If command is longer than 5 words, likely complex
-        if (command.split(' ').length > 5) {
+        // If command is longer than 3 words, likely complex
+        if (command.split(' ').length > 3) {
             return { type: 'complex', prompt: command };
         }
         
-        // Default to template for simple commands
-        return { type: 'template', template: 'function' };
+        // Default to complex for better AI generation
+        return { type: 'complex', prompt: command };
     }
 
     handleControlCommand(action) {
@@ -245,48 +251,25 @@ const isActive = true;`,
             // Enhanced prompt for better code generation
             const enhancedPrompt = this.enhancePrompt(prompt, language);
             
-            // Try multiple LLM providers for better reliability
+            // Use Claude API for reliable code generation
             const providers = [
                 {
-                    name: 'OpenRouter',
-                    url: 'https://openrouter.ai/api/v1/chat/completions',
+                    name: 'Claude',
+                    url: 'https://api.anthropic.com/v1/messages',
                     headers: {
-                        'Authorization': 'Bearer sk-or-v1-demo', // Demo key
+                        'x-api-key': 'sk-ant-api03-demo', // You'll need to replace with actual key
                         'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.origin,
-                        'X-Title': 'Voice Vibe Coding'
+                        'anthropic-version': '2023-06-01'
                     },
                     body: {
-                        model: 'qwen/qwen-2.5-coder-32b-instruct:free',
+                        model: 'claude-3-haiku-20240307',
+                        max_tokens: 300,
                         messages: [
                             {
-                                role: 'system',
-                                content: `You are a code generation assistant. Generate clean, working ${language} code based on the user's request. Only return the code, no explanations.`
-                            },
-                            {
                                 role: 'user',
-                                content: enhancedPrompt
+                                content: `Generate clean, working ${language} code for: ${enhancedPrompt}. Only return the code, no explanations or markdown formatting.`
                             }
-                        ],
-                        max_tokens: 200,
-                        temperature: 0.3
-                    }
-                },
-                {
-                    name: 'HuggingFace',
-                    url: 'https://api-inference.huggingface.co/models/bigcode/starcoder2-15b',
-                    headers: {
-                        'Authorization': 'Bearer hf_demo',
-                        'Content-Type': 'application/json',
-                    },
-                    body: {
-                        inputs: enhancedPrompt,
-                        parameters: {
-                            max_new_tokens: 150,
-                            temperature: 0.3,
-                            return_full_text: false,
-                            do_sample: true
-                        }
+                        ]
                     }
                 }
             ];
@@ -303,15 +286,13 @@ const isActive = true;`,
                         const result = await response.json();
                         let generatedCode = '';
                         
-                        // Handle OpenRouter response format
-                        if (result.choices && result.choices[0]?.message?.content) {
-                            generatedCode = result.choices[0].message.content;
+                        // Handle Claude response format
+                        if (result.content && result.content[0]?.text) {
+                            generatedCode = result.content[0].text;
                         }
-                        // Handle HuggingFace response format
-                        else if (Array.isArray(result) && result[0]?.generated_text) {
-                            generatedCode = result[0].generated_text;
-                        } else if (result.generated_text) {
-                            generatedCode = result.generated_text;
+                        // Handle OpenRouter/other response formats
+                        else if (result.choices && result.choices[0]?.message?.content) {
+                            generatedCode = result.choices[0].message.content;
                         }
                         
                         if (generatedCode.trim()) {
