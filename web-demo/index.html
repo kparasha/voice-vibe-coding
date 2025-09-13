@@ -360,29 +360,31 @@
             <div id="status" class="status">Hold SPACE to speak, release to execute</div>
             <div id="transcript" class="transcript">Your speech will appear here...</div>
             <div class="activation-help">
-                <strong>Activation Methods:</strong><br>
-                • Hold <kbd>SPACE</kbd> key (like Fn key) - release to auto-execute<br>
-                • Click microphone button for toggle mode<br>
-                • <kbd>Ctrl+Space</kbd> for quick toggle
+                <strong>Voice Commands:</strong><br>
+                • <kbd>SPACE</kbd> + "create React component" → AI generates component<br>
+                • <kbd>SPACE</kbd> + "make Python function to sort data" → AI generates code<br>
+                • <kbd>SPACE</kbd> + "clear editor" → clears canvas<br>
+                • <kbd>SPACE</kbd> + "copy code" → copies to clipboard<br>
+                <strong>Quick Templates:</strong> function, variable, class, comment
             </div>
         </div>
 
         <div class="commands-grid">
             <div class="command-card" onclick="executeCommand('function')">
-                <div class="command-title">Create Function</div>
-                <div class="command-phrase">Say: "create function"</div>
+                <div class="command-title">📋 Quick Function</div>
+                <div class="command-phrase">Template: "create function"</div>
             </div>
             <div class="command-card" onclick="executeCommand('variable')">
-                <div class="command-title">Declare Variable</div>
-                <div class="command-phrase">Say: "create variable"</div>
+                <div class="command-title">🔢 Quick Variable</div>
+                <div class="command-phrase">Template: "create variable"</div>
             </div>
             <div class="command-card" onclick="executeCommand('class')">
-                <div class="command-title">Create Class</div>
-                <div class="command-phrase">Say: "create class"</div>
+                <div class="command-title">🏗️ Quick Class</div>
+                <div class="command-phrase">Template: "create class"</div>
             </div>
-            <div class="command-card" onclick="executeCommand('comment')">
-                <div class="command-title">Add Comment</div>
-                <div class="command-phrase">Say: "add comment"</div>
+            <div class="command-card" onclick="clearEditor()">
+                <div class="command-title">🗑️ Clear Canvas</div>
+                <div class="command-phrase">Voice: "clear editor"</div>
             </div>
         </div>
 

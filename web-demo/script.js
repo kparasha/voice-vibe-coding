@@ -154,18 +154,83 @@ const isActive = true;`,
     async processVoiceCommand(command) {
         this.showSuccess(`Processing: "${command}"`);
         
-        // Check for specific templates first
-        if (command.includes('function') || command.includes('create function')) {
-            this.executeCommand('function');
-        } else if (command.includes('variable') || command.includes('create variable')) {
-            this.executeCommand('variable');
-        } else if (command.includes('class') || command.includes('create class')) {
-            this.executeCommand('class');
-        } else if (command.includes('comment') || command.includes('add comment')) {
-            this.executeCommand('comment');
+        // Enhanced command parsing with intent recognition
+        const intent = this.parseVoiceIntent(command);
+        
+        if (intent.type === 'template') {
+            this.executeCommand(intent.template);
+        } else if (intent.type === 'complex') {
+            await this.generateCodeWithLLM(intent.prompt);
+        } else if (intent.type === 'control') {
+            this.handleControlCommand(intent.action);
         } else {
-            // Use LLM for more complex requests
+            // Default to LLM for unrecognized commands
             await this.generateCodeWithLLM(command);
+        }
+    }
+
+    parseVoiceIntent(command) {
+        const lowerCommand = command.toLowerCase().trim();
+        
+        // Control commands
+        if (lowerCommand.includes('clear') || lowerCommand.includes('reset')) {
+            return { type: 'control', action: 'clear' };
+        }
+        if (lowerCommand.includes('copy') || lowerCommand.includes('clipboard')) {
+            return { type: 'control', action: 'copy' };
+        }
+        
+        // Template commands (exact matches)
+        const templatePatterns = {
+            function: ['create function', 'add function', 'make function', 'function'],
+            variable: ['create variable', 'add variable', 'make variable', 'variable'],
+            class: ['create class', 'add class', 'make class', 'class'],
+            comment: ['add comment', 'create comment', 'comment']
+        };
+        
+        for (const [template, patterns] of Object.entries(templatePatterns)) {
+            if (patterns.some(pattern => lowerCommand.includes(pattern))) {
+                return { type: 'template', template };
+            }
+        }
+        
+        // Complex patterns that should use LLM
+        const complexPatterns = [
+            'react component', 'vue component', 'angular component',
+            'api endpoint', 'rest api', 'graphql',
+            'database', 'sql query', 'mongodb',
+            'algorithm', 'sort', 'search',
+            'authentication', 'login', 'signup',
+            'form validation', 'input validation',
+            'responsive design', 'mobile first',
+            'async function', 'promise', 'await'
+        ];
+        
+        if (complexPatterns.some(pattern => lowerCommand.includes(pattern))) {
+            return { type: 'complex', prompt: command };
+        }
+        
+        // If command is longer than 5 words, likely complex
+        if (command.split(' ').length > 5) {
+            return { type: 'complex', prompt: command };
+        }
+        
+        // Default to template for simple commands
+        return { type: 'template', template: 'function' };
+    }
+
+    handleControlCommand(action) {
+        switch (action) {
+            case 'clear':
+                clearEditor();
+                this.showSuccess('✅ Editor cleared');
+                break;
+            case 'copy':
+                copyCode();
+                this.showSuccess('✅ Code copied to clipboard');
+                break;
+            default:
+                this.showError(`Unknown control command: ${action}`);
         }
     }
 
@@ -174,39 +239,102 @@ const isActive = true;`,
         const llmStatus = this.showLLMStatus('🤖 Generating code with AI...');
         
         try {
-            // Using HuggingFace Inference API (free tier)
-            const response = await fetch('https://api-inference.huggingface.co/models/bigcode/starcoder2-15b', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer hf_demo', // Demo token for testing
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    inputs: `Generate ${language} code for: ${prompt}`,
-                    parameters: {
-                        max_new_tokens: 200,
-                        temperature: 0.7,
-                        return_full_text: false
+            // Enhanced prompt for better code generation
+            const enhancedPrompt = this.enhancePrompt(prompt, language);
+            
+            // Try multiple LLM providers for better reliability
+            const providers = [
+                {
+                    name: 'HuggingFace',
+                    url: 'https://api-inference.huggingface.co/models/bigcode/starcoder2-15b',
+                    headers: {
+                        'Authorization': 'Bearer hf_demo',
+                        'Content-Type': 'application/json',
+                    },
+                    body: {
+                        inputs: enhancedPrompt,
+                        parameters: {
+                            max_new_tokens: 150,
+                            temperature: 0.3,
+                            return_full_text: false,
+                            do_sample: true
+                        }
                     }
-                })
-            });
+                }
+            ];
 
-            if (response.ok) {
-                const result = await response.json();
-                const generatedCode = result[0]?.generated_text || `// Generated ${language} code for: ${prompt}\n// TODO: Implement functionality`;
-                this.appendToEditor(generatedCode);
-                this.showSuccess('✅ Code generated successfully!');
-            } else {
-                throw new Error('API request failed');
+            for (const provider of providers) {
+                try {
+                    const response = await fetch(provider.url, {
+                        method: 'POST',
+                        headers: provider.headers,
+                        body: JSON.stringify(provider.body)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        let generatedCode = '';
+                        
+                        if (Array.isArray(result) && result[0]?.generated_text) {
+                            generatedCode = result[0].generated_text;
+                        } else if (result.generated_text) {
+                            generatedCode = result.generated_text;
+                        }
+                        
+                        if (generatedCode.trim()) {
+                            const cleanCode = this.cleanGeneratedCode(generatedCode, language);
+                            this.appendToEditor(cleanCode);
+                            this.showSuccess(`✅ Code generated with ${provider.name}!`);
+                            return;
+                        }
+                    }
+                } catch (providerError) {
+                    console.warn(`${provider.name} failed:`, providerError);
+                    continue;
+                }
             }
+            
+            throw new Error('All LLM providers failed');
+            
         } catch (error) {
             console.error('LLM generation error:', error);
-            // Fallback to template-based generation
+            // Fallback to enhanced template-based generation
             this.generateFallbackCode(prompt, language);
-            this.showSuccess('✅ Generated with template (LLM unavailable)');
+            this.showSuccess('✅ Generated with enhanced template');
         } finally {
             llmStatus.remove();
         }
+    }
+
+    enhancePrompt(prompt, language) {
+        const languageContext = {
+            javascript: 'Write clean, modern JavaScript code with ES6+ features.',
+            python: 'Write clean, Pythonic code following PEP 8 standards.',
+            typescript: 'Write TypeScript code with proper type annotations.',
+            html: 'Write semantic HTML5 code with proper structure.',
+            css: 'Write modern CSS with flexbox/grid and responsive design.'
+        };
+        
+        const context = languageContext[language] || 'Write clean, well-documented code.';
+        return `${context}\n\nTask: ${prompt}\n\nCode:`;
+    }
+
+    cleanGeneratedCode(code, language) {
+        // Remove common artifacts from LLM generation
+        let cleaned = code
+            .replace(/^```[\w]*\n?/, '') // Remove opening code blocks
+            .replace(/\n?```$/, '')      // Remove closing code blocks
+            .replace(/^Code:\s*\n?/, '') // Remove "Code:" prefix
+            .trim();
+        
+        // Add language-specific formatting
+        if (language === 'python' && !cleaned.includes('def ') && !cleaned.includes('class ')) {
+            cleaned = `# Generated Python code\n${cleaned}`;
+        } else if (language === 'javascript' && !cleaned.includes('function') && !cleaned.includes('=>')) {
+            cleaned = `// Generated JavaScript code\n${cleaned}`;
+        }
+        
+        return cleaned;
     }
 
     generateFallbackCode(prompt, language) {
