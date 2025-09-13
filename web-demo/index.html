@@ -32,18 +32,26 @@
 
         .header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            color: white;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
         }
 
         .title {
-            font-size: 2.5rem;
-            color: #333;
+            font-size: 3.5rem;
+            font-weight: 900;
             margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .subtitle {
-            color: #666;
-            font-size: 1.1rem;
+            font-size: 1.3rem;
+            margin: 0;
+            opacity: 0.9;
+            font-weight: 300;
         }
 
         .voice-section {
@@ -248,22 +256,6 @@
             font-weight: bold;
             transition: background 0.3s ease;
         }
-
-        .integration-link:hover {
-            background: #5a6fd8;
-        }
-
-        .editor-container {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin: 20px 0;
-        }
-
-        .editor-header {
-            display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
             flex-wrap: wrap;
@@ -306,24 +298,77 @@
             font-size: 0.9rem;
         }
 
+        .editor-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            min-height: 400px;
+        }
+
         .code-editor {
-            background: #1a202c;
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
             color: #e2e8f0;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.6;
             padding: 20px;
-            border-radius: 8px;
-            min-height: 300px;
+            border-radius: 12px;
+            min-height: 400px;
             white-space: pre-wrap;
-            overflow-x: auto;
-            border: 1px solid #2d3748;
+            overflow-y: auto;
+            border: 2px solid #4a5568;
             position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
 
         .code-editor:focus {
-            outline: 2px solid #4299e1;
-            outline-offset: 2px;
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .output-panel {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .output-header {
+            background: #667eea;
+            color: white;
+            padding: 12px 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .code-output {
+            padding: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #2d3748;
+            min-height: 340px;
+            background: white;
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .run-btn:hover {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+        }
+
+        @media (max-width: 768px) {
+            .editor-wrapper {
+                grid-template-columns: 1fr;
+            }
         }
 
         .llm-status {
@@ -359,71 +404,29 @@
             <button id="voiceBtn" class="voice-button">🎤</button>
             <div id="status" class="status">Hold SPACE to speak, release to execute</div>
             <div id="transcript" class="transcript">Your speech will appear here...</div>
-            <div class="activation-help">
-                <strong>Voice Commands:</strong><br>
-                • <kbd>SPACE</kbd> + "create React component" → AI generates component<br>
-                • <kbd>SPACE</kbd> + "make Python function to sort data" → AI generates code<br>
-                • <kbd>SPACE</kbd> + "clear editor" → clears canvas<br>
-                • <kbd>SPACE</kbd> + "copy code" → copies to clipboard<br>
-                <strong>Quick Templates:</strong> function, variable, class, comment
-            </div>
-        </div>
-
-        <div class="commands-grid">
-            <div class="command-card" onclick="executeCommand('function')">
-                <div class="command-title">📋 Quick Function</div>
-                <div class="command-phrase">Template: "create function"</div>
-            </div>
-            <div class="command-card" onclick="executeCommand('variable')">
-                <div class="command-title">🔢 Quick Variable</div>
-                <div class="command-phrase">Template: "create variable"</div>
-            </div>
-            <div class="command-card" onclick="executeCommand('class')">
-                <div class="command-title">🏗️ Quick Class</div>
-                <div class="command-phrase">Template: "create class"</div>
-            </div>
-            <div class="command-card" onclick="clearEditor()">
-                <div class="command-title">🗑️ Clear Canvas</div>
-                <div class="command-phrase">Voice: "clear editor"</div>
-            </div>
-        </div>
-
-        <div class="editor-integration">
-            <div class="integration-title">🔗 Open Code Editor Integration</div>
-            <p>Use Voice Vibe alongside your favorite code editor:</p>
-            <div class="integration-links">
-                <a href="https://vscode.dev" target="_blank" class="integration-link">VS Code Web</a>
-                <a href="https://github.dev/kparasha/voice-vibe-coding" target="_blank" class="integration-link">GitHub.dev</a>
-                <a href="https://stackblitz.com" target="_blank" class="integration-link">StackBlitz</a>
-                <a href="https://codesandbox.io" target="_blank" class="integration-link">CodeSandbox</a>
-            </div>
-            <p style="margin-top: 15px; font-size: 0.9rem; color: #666;">
-                Open in split screen: Voice Vibe on left, code editor on right
-            </p>
         </div>
 
         <div class="editor-container">
             <div class="editor-header">
-                <h3 class="editor-title">Live Code Canvas</h3>
+                <h3 class="editor-title">🚀 Code Canvas</h3>
                 <div class="editor-controls">
-                    <button id="clearBtn" class="editor-btn" onclick="clearEditor()">Clear</button>
-                    <button id="copyBtn" class="editor-btn" onclick="copyCode()">Copy All</button>
+                    <button id="runBtn" class="editor-btn run-btn" onclick="runCode()">▶️ Run</button>
+                    <button id="clearBtn" class="editor-btn" onclick="clearEditor()">🗑️ Clear</button>
                     <select id="languageSelect" class="language-select">
                         <option value="javascript">JavaScript</option>
                         <option value="python">Python</option>
-                        <option value="typescript">TypeScript</option>
                         <option value="html">HTML</option>
-                        <option value="css">CSS</option>
                     </select>
                 </div>
             </div>
-            <div id="codeEditor" class="code-editor">// Your generated code will appear here
-// Hold SPACE key and say:
-// - "create function"
-// - "create variable" 
-// - "create class"
-// - "add comment"
-// Release SPACE to auto-execute!</div>
+            <div class="editor-wrapper">
+                <div id="codeEditor" class="code-editor" contenteditable="true">// Speak to code: Hold SPACE and say what you want to build
+console.log("Hello, Voice Vibe Coding!");</div>
+                <div id="outputPanel" class="output-panel">
+                    <div class="output-header">📊 Output</div>
+                    <div id="codeOutput" class="code-output">Ready to run your code...</div>
+                </div>
+            </div>
         </div>
     </div>
 

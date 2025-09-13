@@ -245,6 +245,31 @@ const isActive = true;`,
             // Try multiple LLM providers for better reliability
             const providers = [
                 {
+                    name: 'OpenRouter',
+                    url: 'https://openrouter.ai/api/v1/chat/completions',
+                    headers: {
+                        'Authorization': 'Bearer sk-or-v1-demo', // Demo key
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'Voice Vibe Coding'
+                    },
+                    body: {
+                        model: 'qwen/qwen-2.5-coder-32b-instruct:free',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are a code generation assistant. Generate clean, working ${language} code based on the user's request. Only return the code, no explanations.`
+                            },
+                            {
+                                role: 'user',
+                                content: enhancedPrompt
+                            }
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.3
+                    }
+                },
+                {
                     name: 'HuggingFace',
                     url: 'https://api-inference.huggingface.co/models/bigcode/starcoder2-15b',
                     headers: {
@@ -275,7 +300,12 @@ const isActive = true;`,
                         const result = await response.json();
                         let generatedCode = '';
                         
-                        if (Array.isArray(result) && result[0]?.generated_text) {
+                        // Handle OpenRouter response format
+                        if (result.choices && result.choices[0]?.message?.content) {
+                            generatedCode = result.choices[0].message.content;
+                        }
+                        // Handle HuggingFace response format
+                        else if (Array.isArray(result) && result[0]?.generated_text) {
                             generatedCode = result[0].generated_text;
                         } else if (result.generated_text) {
                             generatedCode = result.generated_text;
@@ -488,7 +518,51 @@ function copyCode() {
 }
 
 function clearEditor() {
-    document.getElementById('codeEditor').textContent = '// Code editor cleared\n// Start speaking to generate new code!';
+    document.getElementById('codeEditor').textContent = '// Speak to code: Hold SPACE and say what you want to build\nconsole.log("Hello, Voice Vibe Coding!");';
+    document.getElementById('codeOutput').textContent = 'Ready to run your code...';
+}
+
+function runCode() {
+    const code = document.getElementById('codeEditor').textContent;
+    const language = document.getElementById('languageSelect').value;
+    const output = document.getElementById('codeOutput');
+    
+    if (language === 'javascript') {
+        try {
+            // Capture console.log output
+            const originalLog = console.log;
+            let logOutput = '';
+            console.log = (...args) => {
+                logOutput += args.join(' ') + '\n';
+                originalLog(...args);
+            };
+            
+            // Execute the code
+            const result = eval(code);
+            console.log = originalLog;
+            
+            output.textContent = logOutput || (result !== undefined ? String(result) : 'Code executed successfully!');
+        } catch (error) {
+            output.textContent = `Error: ${error.message}`;
+        }
+    } else if (language === 'html') {
+        // Create a preview for HTML
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '100%';
+        iframe.style.height = '300px';
+        iframe.style.border = '1px solid #ccc';
+        iframe.style.borderRadius = '8px';
+        
+        output.innerHTML = '';
+        output.appendChild(iframe);
+        
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(code);
+        doc.close();
+    } else {
+        output.textContent = `${language} execution not supported in browser. Code is ready to copy!`;
+    }
 }
 
 // Initialize the app
