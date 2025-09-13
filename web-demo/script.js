@@ -251,25 +251,56 @@ const isActive = true;`,
             // Enhanced prompt for better code generation
             const enhancedPrompt = this.enhancePrompt(prompt, language);
             
-            // Use Claude API for reliable code generation
+            // Use proxy services to avoid CORS issues
             const providers = [
                 {
-                    name: 'Claude',
-                    url: CONFIG.CLAUDE_API_URL,
+                    name: 'Claude via Proxy',
+                    url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(CONFIG.CLAUDE_API_URL),
                     headers: {
-                        'x-api-key': CONFIG.CLAUDE_API_KEY,
-                        'Content-Type': 'application/json',
-                        'anthropic-version': '2023-06-01'
+                        'Content-Type': 'application/json'
                     },
                     body: {
-                        model: CONFIG.CLAUDE_MODEL,
-                        max_tokens: CONFIG.MAX_TOKENS,
+                        method: 'POST',
+                        headers: {
+                            'x-api-key': CONFIG.CLAUDE_API_KEY,
+                            'Content-Type': 'application/json',
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify({
+                            model: CONFIG.CLAUDE_MODEL,
+                            max_tokens: CONFIG.MAX_TOKENS,
+                            messages: [
+                                {
+                                    role: 'user',
+                                    content: `Generate clean, working ${language} code for: ${enhancedPrompt}. Only return the code, no explanations or markdown formatting.`
+                                }
+                            ]
+                        })
+                    }
+                },
+                {
+                    name: 'OpenRouter Fallback',
+                    url: 'https://openrouter.ai/api/v1/chat/completions',
+                    headers: {
+                        'Authorization': 'Bearer sk-or-v1-demo',
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.origin,
+                        'X-Title': 'Voice Vibe Coding'
+                    },
+                    body: {
+                        model: 'qwen/qwen-2.5-coder-32b-instruct:free',
                         messages: [
                             {
+                                role: 'system',
+                                content: `You are a code generation assistant. Generate clean, working ${language} code based on the user's request. Only return the code, no explanations.`
+                            },
+                            {
                                 role: 'user',
-                                content: `Generate clean, working ${language} code for: ${enhancedPrompt}. Only return the code, no explanations or markdown formatting.`
+                                content: enhancedPrompt
                             }
-                        ]
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.3
                     }
                 }
             ];
@@ -312,11 +343,20 @@ const isActive = true;`,
             
         } catch (error) {
             console.error('LLM generation error:', error);
-            // Fallback to enhanced template-based generation
-            this.generateFallbackCode(prompt, language);
-            this.showSuccess('✅ Generated with enhanced template');
+            
+            // Add detailed error information for debugging
+            if (error.message.includes('CORS') || error.message.includes('fetch')) {
+                this.showError('⚠️ CORS Error: Cannot call Claude API directly from browser. Using fallback generation...');
+            } else {
+                this.showError('Failed to generate code. Using fallback generation...');
+            }
+            
+            // Fallback to simple template generation
+            this.generateSimpleCode(prompt, language);
         } finally {
-            llmStatus.remove();
+            if (llmStatus) {
+                llmStatus.remove();
+            }
         }
     }
 
