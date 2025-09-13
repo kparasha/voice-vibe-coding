@@ -197,6 +197,61 @@
             padding: 15px;
             margin: 10px 0;
         }
+
+        .activation-help {
+            background: #e6f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #1a365d;
+        }
+
+        .activation-help kbd {
+            background: #2d3748;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .editor-integration {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .integration-title {
+            font-size: 1.3rem;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+
+        .integration-links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .integration-link {
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        .integration-link:hover {
+            background: #5a6fd8;
+        }
     </style>
 </head>
 <body>
@@ -208,8 +263,14 @@
 
         <div class="voice-section">
             <button id="voiceBtn" class="voice-button">🎤</button>
-            <div id="status" class="status">Click the microphone to start</div>
+            <div id="status" class="status">Hold SPACE to speak, release to execute</div>
             <div id="transcript" class="transcript">Your speech will appear here...</div>
+            <div class="activation-help">
+                <strong>Activation Methods:</strong><br>
+                • Hold <kbd>SPACE</kbd> key (like Fn key) - release to auto-execute<br>
+                • Click microphone button for toggle mode<br>
+                • <kbd>Ctrl+Space</kbd> for quick toggle
+            </div>
         </div>
 
         <div class="commands-grid">
@@ -231,17 +292,32 @@
             </div>
         </div>
 
+        <div class="editor-integration">
+            <div class="integration-title">🔗 Open Code Editor Integration</div>
+            <p>Use Voice Vibe alongside your favorite code editor:</p>
+            <div class="integration-links">
+                <a href="https://vscode.dev" target="_blank" class="integration-link">VS Code Web</a>
+                <a href="https://github.dev/kparasha/voice-vibe-coding" target="_blank" class="integration-link">GitHub.dev</a>
+                <a href="https://stackblitz.com" target="_blank" class="integration-link">StackBlitz</a>
+                <a href="https://codesandbox.io" target="_blank" class="integration-link">CodeSandbox</a>
+            </div>
+            <p style="margin-top: 15px; font-size: 0.9rem; color: #666;">
+                Open in split screen: Voice Vibe on left, code editor on right
+            </p>
+        </div>
+
         <div class="output-section">
             <div class="output-header">
                 <h3 class="output-title">Generated Code</h3>
                 <button id="copyBtn" class="copy-btn" onclick="copyCode()">Copy Code</button>
             </div>
             <pre id="codeOutput" class="code-output">// Your generated code will appear here
-// Click the microphone and try saying:
+// Hold SPACE key and say:
 // - "create function"
 // - "create variable" 
 // - "create class"
-// - "add comment"</pre>
+// - "add comment"
+// Release SPACE to auto-execute!</pre>
         </div>
     </div>
 
