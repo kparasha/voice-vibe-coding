@@ -11,59 +11,107 @@ class VoiceInputManager {
   private isDisposed: boolean = false;
   private lastCommand: string = '';
   private lastCommandTime: number = 0;
+  private pendingCommand: string = '';
+  private statusBarItem: vscode.StatusBarItem;
 
   constructor(private context: vscode.ExtensionContext) {
+    this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    this.statusBarItem.text = "🎤 Voice Vibe";
+    this.statusBarItem.command = 'voiceVibeCoding.startVoiceCoding';
+    this.statusBarItem.show();
     this.setupWebview();
   }
 
   private setupWebview() {
+    outputChannel.appendLine('[DEBUG] Setting up webview...');
+    
     // Clean up existing webview if it exists
     if (this.webviewPanel) {
+      outputChannel.appendLine('[DEBUG] Disposing existing webview');
       this.webviewPanel.dispose();
     }
     
     this.isDisposed = false;
-    this.webviewPanel = vscode.window.createWebviewPanel(
-      'voiceVibeWebview',
-      'Voice Vibe Coding',
-      vscode.ViewColumn.Beside,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [],
-        portMapping: []
-      }
-    );
-
-    this.webviewPanel.webview.html = this.getWebviewContent();
     
-    // Track disposal
-    this.webviewPanel.onDidDispose(() => {
-      this.isDisposed = true;
-      this.webviewPanel = undefined;
-    });
-    
-    // Handle messages from webview
-    this.webviewPanel.webview.onDidReceiveMessage(
-      message => {
-        switch (message.command) {
-          case 'voiceResult':
-            this.handleVoiceResult(message.text, message.isFinal);
-            break;
-          case 'voiceError':
-            this.handleVoiceError(message.error);
-            break;
-          case 'voiceStart':
-            outputChannel.appendLine('Voice recognition started');
-            break;
-          case 'voiceEnd':
-            outputChannel.appendLine('Voice recognition ended');
-            break;
+    try {
+      this.webviewPanel = vscode.window.createWebviewPanel(
+        'voiceVibeWebview',
+        'Voice Vibe Coding',
+        vscode.ViewColumn.Beside,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          localResourceRoots: [],
+          portMapping: []
         }
-      },
-      undefined,
-      this.context.subscriptions
-    );
+      );
+
+      outputChannel.appendLine('[DEBUG] Webview created successfully');
+      this.webviewPanel.webview.html = this.getWebviewContent();
+      
+      // Track disposal
+      this.webviewPanel.onDidDispose(() => {
+        outputChannel.appendLine('[DEBUG] Webview disposed event fired');
+        this.isDisposed = true;
+        this.webviewPanel = undefined;
+        this.updateStatusBar('disposed');
+      });
+      
+      // Handle messages from webview
+      this.webviewPanel.webview.onDidReceiveMessage(
+        message => {
+          outputChannel.appendLine(`[DEBUG] Webview message: ${JSON.stringify(message)}`);
+          switch (message.command) {
+            case 'voiceResult':
+              this.handleVoiceResult(message.text, message.isFinal);
+              break;
+            case 'voiceError':
+              this.handleVoiceError(message.error);
+              break;
+            case 'voiceStart':
+              outputChannel.appendLine('Voice recognition started');
+              this.updateStatusBar('listening');
+              break;
+            case 'voiceEnd':
+              outputChannel.appendLine('Voice recognition ended');
+              this.updateStatusBar('ready');
+              break;
+          }
+        },
+        undefined,
+        this.context.subscriptions
+      );
+      
+      this.updateStatusBar('ready');
+      
+    } catch (error) {
+      outputChannel.appendLine(`[ERROR] Failed to create webview: ${error}`);
+      this.isDisposed = true;
+    }
+  }
+
+  private updateStatusBar(state: string) {
+    switch (state) {
+      case 'listening':
+        this.statusBarItem.text = "🎤 Listening...";
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        vscode.commands.executeCommand('setContext', 'voiceVibeCoding.isListening', true);
+        break;
+      case 'ready':
+        this.statusBarItem.text = "🎤 Voice Vibe";
+        this.statusBarItem.backgroundColor = undefined;
+        vscode.commands.executeCommand('setContext', 'voiceVibeCoding.isListening', false);
+        break;
+      case 'disposed':
+        this.statusBarItem.text = "🎤 Reconnecting...";
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+        vscode.commands.executeCommand('setContext', 'voiceVibeCoding.isListening', false);
+        break;
+      case 'pending':
+        this.statusBarItem.text = "🎤 Press Enter to confirm";
+        this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+        break;
+    }
   }
 
   private getWebviewContent(): string {
@@ -318,23 +366,37 @@ class VoiceInputManager {
     </html>`;
   }
 
-  public startListening() {
-    if (this.webviewPanel && !this.isDisposed) {
-      this.webviewPanel.webview.postMessage({ command: 'startListening' });
-      this.webviewPanel.reveal();
-    } else if (this.isDisposed || !this.webviewPanel) {
-      // Recreate webview if disposed
+  public async startVoiceCoding() {
+    outputChannel.appendLine('[DEBUG] Start voice coding called');
+    
+    // Check if webview is disposed and recreate if needed
+    if (this.isDisposed || !this.webviewPanel) {
+      outputChannel.appendLine('[DEBUG] Webview disposed or missing, recreating...');
       this.setupWebview();
-      if (this.webviewPanel) {
-        this.webviewPanel.webview.postMessage({ command: 'startListening' });
-        this.webviewPanel.reveal();
-      }
+      
+      // Give webview time to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    if (this.webviewPanel && !this.isDisposed) {
+      outputChannel.appendLine('[DEBUG] Revealing webview and starting listening');
+      this.webviewPanel.reveal();
+      this.webviewPanel.webview.postMessage({ command: 'startListening' });
+      this.isListening = true;
+      this.updateStatusBar('listening');
+    } else {
+      outputChannel.appendLine('[ERROR] Failed to create or access voice input panel');
+      vscode.window.showErrorMessage('Failed to create voice input panel. Check output for details.');
     }
   }
 
-  public stopListening() {
-    if (this.webviewPanel) {
+  public async stopVoiceCoding() {
+    outputChannel.appendLine('[DEBUG] Stop voice coding called');
+    
+    if (this.webviewPanel && !this.isDisposed) {
       this.webviewPanel.webview.postMessage({ command: 'stopListening' });
+      this.isListening = false;
+      this.updateStatusBar('ready');
     }
   }
 
@@ -351,9 +413,37 @@ class VoiceInputManager {
       this.lastCommand = text;
       this.lastCommandTime = Date.now();
       
-      // Process the final voice command
-      this.processVoiceCommand(text);
+      // Store pending command instead of processing immediately
+      this.pendingCommand = text;
+      this.updateStatusBar('pending');
+      
+      vscode.window.showInformationMessage(
+        `Voice command recognized: "${text}". Press Enter to confirm or Escape to cancel.`,
+        'Confirm',
+        'Cancel'
+      ).then(selection => {
+        if (selection === 'Confirm') {
+          this.confirmPendingCommand();
+        } else {
+          this.cancelPendingCommand();
+        }
+      });
     }
+  }
+
+  public confirmPendingCommand() {
+    if (this.pendingCommand) {
+      outputChannel.appendLine(`[DEBUG] Confirming command: ${this.pendingCommand}`);
+      this.processVoiceCommand(this.pendingCommand);
+      this.pendingCommand = '';
+      this.updateStatusBar('ready');
+    }
+  }
+
+  public cancelPendingCommand() {
+    outputChannel.appendLine(`[DEBUG] Canceling command: ${this.pendingCommand}`);
+    this.pendingCommand = '';
+    this.updateStatusBar('ready');
   }
 
   private handleVoiceError(error: string) {
@@ -441,12 +531,20 @@ class VoiceInputManager {
   }
 
   public dispose() {
-    this.isDisposed = true;
+    outputChannel.appendLine('[DEBUG] Disposing VoiceInputManager');
+    
     if (this.webviewPanel) {
       this.webviewPanel.dispose();
-      this.webviewPanel = undefined;
     }
+    
+    if (this.statusBarItem) {
+      this.statusBarItem.dispose();
+    }
+    
+    this.isDisposed = true;
+    this.isListening = false;
   }
+
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -464,13 +562,28 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage('🎤 Voice Vibe Coding: Starting voice recognition...');
       outputChannel.appendLine('Starting voice coding session');
       outputChannel.show();
-      voiceInputManager.startListening();
+      voiceInputManager.startVoiceCoding();
+    }
+  });
+
+  let stopVoiceDisposable = vscode.commands.registerCommand('voiceVibeCoding.stopVoiceCoding', () => {
+    if (voiceInputManager) {
+      outputChannel.appendLine('Stopping voice coding session');
+      voiceInputManager.stopVoiceCoding();
+    }
+  });
+
+  let confirmCommandDisposable = vscode.commands.registerCommand('voiceVibeCoding.confirmCommand', () => {
+    if (voiceInputManager) {
+      voiceInputManager.confirmPendingCommand();
     }
   });
 
   context.subscriptions.push(
     helloDisposable, 
     startVoiceDisposable,
+    stopVoiceDisposable,
+    confirmCommandDisposable,
     outputChannel
   );
 }
