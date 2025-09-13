@@ -251,56 +251,17 @@ const isActive = true;`,
             // Enhanced prompt for better code generation
             const enhancedPrompt = this.enhancePrompt(prompt, language);
             
-            // Use proxy services to avoid CORS issues
+            // Use backend API to avoid CORS issues
             const providers = [
                 {
-                    name: 'Claude via Proxy',
-                    url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(CONFIG.CLAUDE_API_URL),
+                    name: 'Backend API',
+                    url: '/api/generate-code',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: {
-                        method: 'POST',
-                        headers: {
-                            'x-api-key': CONFIG.CLAUDE_API_KEY,
-                            'Content-Type': 'application/json',
-                            'anthropic-version': '2023-06-01'
-                        },
-                        body: JSON.stringify({
-                            model: CONFIG.CLAUDE_MODEL,
-                            max_tokens: CONFIG.MAX_TOKENS,
-                            messages: [
-                                {
-                                    role: 'user',
-                                    content: `Generate clean, working ${language} code for: ${enhancedPrompt}. Only return the code, no explanations or markdown formatting.`
-                                }
-                            ]
-                        })
-                    }
-                },
-                {
-                    name: 'OpenRouter Fallback',
-                    url: 'https://openrouter.ai/api/v1/chat/completions',
-                    headers: {
-                        'Authorization': 'Bearer sk-or-v1-demo',
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': window.location.origin,
-                        'X-Title': 'Voice Vibe Coding'
-                    },
-                    body: {
-                        model: 'qwen/qwen-2.5-coder-32b-instruct:free',
-                        messages: [
-                            {
-                                role: 'system',
-                                content: `You are a code generation assistant. Generate clean, working ${language} code based on the user's request. Only return the code, no explanations.`
-                            },
-                            {
-                                role: 'user',
-                                content: enhancedPrompt
-                            }
-                        ],
-                        max_tokens: 200,
-                        temperature: 0.3
+                        prompt: enhancedPrompt,
+                        language: language
                     }
                 }
             ];
@@ -317,8 +278,12 @@ const isActive = true;`,
                         const result = await response.json();
                         let generatedCode = '';
                         
+                        // Handle backend API response format
+                        if (result.code) {
+                            generatedCode = result.code;
+                        }
                         // Handle Claude response format
-                        if (result.content && result.content[0]?.text) {
+                        else if (result.content && result.content[0]?.text) {
                             generatedCode = result.content[0].text;
                         }
                         // Handle OpenRouter/other response formats
