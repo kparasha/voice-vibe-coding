@@ -1,11 +1,14 @@
 node_modules/
+{{ ... }}
 dist/
 out/
 *.vsix
 .vscode-test/
 .nyc_output/
-coverage/
+# Configuration files
 .env
+*.env
+web-demo/config.js
 .DS_Store
 *.log
 npm-debug.log*

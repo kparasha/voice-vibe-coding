@@ -255,15 +255,15 @@ const isActive = true;`,
             const providers = [
                 {
                     name: 'Claude',
-                    url: 'https://api.anthropic.com/v1/messages',
+                    url: CONFIG.CLAUDE_API_URL,
                     headers: {
-                        'x-api-key': 'sk-ant-api03-demo', // You'll need to replace with actual key
+                        'x-api-key': CONFIG.CLAUDE_API_KEY,
                         'Content-Type': 'application/json',
                         'anthropic-version': '2023-06-01'
                     },
                     body: {
-                        model: 'claude-3-haiku-20240307',
-                        max_tokens: 300,
+                        model: CONFIG.CLAUDE_MODEL,
+                        max_tokens: CONFIG.MAX_TOKENS,
                         messages: [
                             {
                                 role: 'user',
