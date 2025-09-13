@@ -1,14 +1,14 @@
 {
   "name": "voice-vibe-coding",
   "displayName": "Voice Vibe Coding",
-  "description": "Seamless AI-powered voice coding with Fn key activation - hands-free coding for accessibility and productivity",
+  "description": "Seamless AI-powered voice coding with Fn key activation - hands-free coding for accessibility and productivity. Compatible with VSCode, VSCodium, Cursor, Windsurf, and other OpenVSX-supported editors.",
   "version": "0.1.0",
   "publisher": "voice-vibe-team",
   "engines": {
     "vscode": ">=1.80.0"
   },
   "categories": ["Other"],
-  "keywords": ["voice", "accessibility", "ai", "hands-free", "carpal-tunnel", "speech-recognition"],
+  "keywords": ["voice", "accessibility", "ai", "hands-free", "carpal-tunnel", "speech-recognition", "openvsx", "vscodium", "cursor", "windsurf"],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -26,8 +26,10 @@
     "keybindings": [
       {
         "command": "voiceVibeCoding.startVoiceCoding",
-        "key": "fn+space",
-        "mac": "fn+space",
+        "key": "cmd+shift+v",
+        "mac": "cmd+shift+v",
+        "win": "ctrl+shift+v",
+        "linux": "ctrl+shift+v",
         "when": "editorTextFocus"
       }
     ]
@@ -40,7 +42,7 @@
     "lint": "eslint src --ext .ts,.js",
     "format": "prettier --write src",
     "test": "mocha --require ts-node/register tests/**/*.test.ts",
-    "package": "vsce package",
+    "package": "npx @vscode/vsce package",
     "vscode:prepublish": "npm run build"
   },
   "devDependencies": {
@@ -56,13 +58,11 @@
     "ts-loader": "^9.4.0",
     "ts-node": "^10.0.0",
     "typescript": "^5.0.0",
-    "vsce": "^3.0.0",
+    "@vscode/vsce": "^2.21.0",
     "webpack": "^5.88.0",
     "webpack-cli": "^5.1.0"
   },
-  "dependencies": {
-    "vscode": "^1.1.37"
-  },
+  "dependencies": {},
   "repository": {
     "type": "git",
     "url": "https://github.com/voice-vibe-team/voice-vibe-coding.git"
