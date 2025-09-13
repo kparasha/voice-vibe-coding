@@ -50,63 +50,60 @@ const isActive = true;`,
         this.autoExecuteTimeout = null;
     }
 
-    initSpeechRecognition() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            this.showError('Speech recognition not supported in this browser. Try Chrome or Edge.');
-            return;
-        }
-
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        this.recognition = new SpeechRecognition();
-        
-        this.recognition.continuous = true;
-        this.recognition.interimResults = true;
-        this.recognition.lang = 'en-US';
-        
-        // Key friction-reducing features
-        this.setupKeyActivation();
-        this.setupAutoExecution();
-
-        this.recognition.onstart = () => {
-            this.isListening = true;
-            this.updateUI();
-            this.showSuccess('Listening... Speak your command!');
-        };
-
-        this.recognition.onresult = (event) => {
-            let interimTranscript = '';
-            let finalTranscript = '';
-
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {
-                    finalTranscript += transcript;
-                } else {
-                    interimTranscript += transcript;
-                }
+    async initSpeechRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            // Request microphone permission upfront
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                this.microphonePermissionGranted = true;
+            } catch (error) {
+                console.warn('Microphone permission denied:', error);
+                this.microphonePermissionGranted = false;
             }
 
-            this.transcript.textContent = finalTranscript + interimTranscript;
-
-            if (finalTranscript) {
-                // Store for key-release execution
-                this.pendingTranscript = finalTranscript;
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            this.recognition = new SpeechRecognition();
+            
+            this.recognition.continuous = false;
+            this.recognition.interimResults = true;
+            this.recognition.lang = 'en-US';
+            
+            this.recognition.onstart = () => {
+                this.updateVoiceButton(true);
+                this.status.textContent = 'Listening... Speak now!';
+                this.transcript.textContent = 'Listening...';
+            };
+            
+            this.recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                this.transcript.textContent = transcript;
                 
-                // If not using key activation, process immediately
-                if (!this.isKeyPressed) {
-                    this.processVoiceCommand(finalTranscript.trim().toLowerCase());
+                if (event.results[event.results.length - 1].isFinal) {
+                    this.processVoiceCommand(transcript.trim());
                 }
-            }
-        };
-
-        this.recognition.onerror = (event) => {
-            this.showError(`Speech recognition error: ${event.error}`);
-            this.stopListening();
-        };
-
-        this.recognition.onend = () => {
-            this.stopListening();
-        };
+            };
+            
+            this.recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error === 'not-allowed') {
+                    this.showError('Microphone access denied. Please allow microphone access and refresh the page.');
+                } else {
+                    this.showError(`Speech recognition error: ${event.error}`);
+                }
+                this.updateVoiceButton(false);
+            };
+            
+            this.recognition.onend = () => {
+                this.isListening = false;
+                this.updateVoiceButton(false);
+                this.status.textContent = 'Hold SPACE to speak, release to execute';
+            };
+        } else {
+            this.showError('Speech recognition not supported in this browser');
+        }
     }
 
     toggleListening() {
@@ -118,15 +115,19 @@ const isActive = true;`,
     }
 
     startListening() {
-        if (!this.recognition) {
-            this.showError('Speech recognition not available');
-            return;
-        }
-
-        try {
-            this.recognition.start();
-        } catch (error) {
-            this.showError('Could not start speech recognition');
+        if (this.recognition && !this.isListening) {
+            try {
+                this.isListening = true;
+                this.recognition.start();
+            } catch (error) {
+                console.error('Error starting recognition:', error);
+                this.isListening = false;
+                if (error.name === 'InvalidStateError') {
+                    this.updateVoiceButton(true);
+                } else {
+                    this.showError('Failed to start voice recognition');
+                }
+            }
         }
     }
 
@@ -152,10 +153,12 @@ const isActive = true;`,
     }
 
     async processVoiceCommand(command) {
+        console.log('Processing voice command:', command);
         this.showSuccess(`Processing: "${command}"`);
         
         // Enhanced command parsing with intent recognition
         const intent = this.parseVoiceIntent(command);
+        console.log('Parsed intent:', intent);
         
         if (intent.type === 'template') {
             this.executeCommand(intent.template);
@@ -388,9 +391,18 @@ const isActive = true;`,
 
     appendToEditor(code) {
         const currentContent = this.codeEditor.textContent;
-        const newContent = currentContent.includes('Your generated code will appear here') ? 
-            code : currentContent + '\n\n' + code;
+        const isDefaultContent = currentContent.includes('Speak to code: Hold SPACE') || 
+                                currentContent.includes('Your generated code will appear here') ||
+                                currentContent.trim() === 'console.log("Hello, Voice Vibe Coding!");';
+        
+        const newContent = isDefaultContent ? code : currentContent + '\n\n' + code;
         this.codeEditor.textContent = newContent;
+        
+        // Trigger a visual update to show the code was added
+        this.codeEditor.style.backgroundColor = '#2d3748';
+        setTimeout(() => {
+            this.codeEditor.style.backgroundColor = '';
+        }, 200);
     }
 
     showLLMStatus(message) {
