@@ -6,8 +6,6 @@ out/
 .vscode-test/
 .nyc_output/
 # Configuration files
-.env
-*.env
 web-demo/config.js
 .DS_Store
 *.log

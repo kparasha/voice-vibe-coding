@@ -352,7 +352,7 @@ const isActive = true;`,
             }
             
             // Fallback to simple template generation
-            this.generateSimpleCode(prompt, language);
+            this.generateFallbackCode(prompt, language);
         } finally {
             if (llmStatus) {
                 llmStatus.remove();
