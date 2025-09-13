@@ -252,6 +252,100 @@
         .integration-link:hover {
             background: #5a6fd8;
         }
+
+        .editor-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .editor-title {
+            color: #2d3748;
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .editor-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .editor-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+        }
+
+        .editor-btn:hover {
+            background: #3182ce;
+        }
+
+        .language-select {
+            padding: 8px 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9rem;
+        }
+
+        .code-editor {
+            background: #1a202c;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 300px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            border: 1px solid #2d3748;
+            position: relative;
+        }
+
+        .code-editor:focus {
+            outline: 2px solid #4299e1;
+            outline-offset: 2px;
+        }
+
+        .llm-status {
+            background: #fef5e7;
+            border: 1px solid #f6ad55;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            color: #744210;
+        }
+
+        .llm-status.processing {
+            background: #e6fffa;
+            border-color: #38b2ac;
+            color: #234e52;
+        }
+
+        .llm-status.error {
+            background: #fed7d7;
+            border-color: #fc8181;
+            color: #742a2a;
+        }
     </style>
 </head>
 <body>
@@ -306,18 +400,28 @@
             </p>
         </div>
 
-        <div class="output-section">
-            <div class="output-header">
-                <h3 class="output-title">Generated Code</h3>
-                <button id="copyBtn" class="copy-btn" onclick="copyCode()">Copy Code</button>
+        <div class="editor-container">
+            <div class="editor-header">
+                <h3 class="editor-title">Live Code Canvas</h3>
+                <div class="editor-controls">
+                    <button id="clearBtn" class="editor-btn" onclick="clearEditor()">Clear</button>
+                    <button id="copyBtn" class="editor-btn" onclick="copyCode()">Copy All</button>
+                    <select id="languageSelect" class="language-select">
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
+                </div>
             </div>
-            <pre id="codeOutput" class="code-output">// Your generated code will appear here
+            <div id="codeEditor" class="code-editor">// Your generated code will appear here
 // Hold SPACE key and say:
 // - "create function"
 // - "create variable" 
 // - "create class"
 // - "add comment"
-// Release SPACE to auto-execute!</pre>
+// Release SPACE to auto-execute!</div>
         </div>
     </div>
 

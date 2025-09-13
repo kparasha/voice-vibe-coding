@@ -39,7 +39,8 @@ const isActive = true;`,
         this.voiceBtn = document.getElementById('voiceBtn');
         this.status = document.getElementById('status');
         this.transcript = document.getElementById('transcript');
-        this.codeOutput = document.getElementById('codeOutput');
+        this.codeEditor = document.getElementById('codeEditor');
+        this.languageSelect = document.getElementById('languageSelect');
         
         this.voiceBtn.addEventListener('click', () => this.toggleListening());
         
@@ -150,23 +151,96 @@ const isActive = true;`,
         }
     }
 
-    processVoiceCommand(command) {
-        console.log('Processing command:', command);
+    async processVoiceCommand(command) {
+        this.showSuccess(`Processing: "${command}"`);
         
-        // Simple command matching
-        if (command.includes('create function') || command.includes('function')) {
+        // Check for specific templates first
+        if (command.includes('function') || command.includes('create function')) {
             this.executeCommand('function');
-        } else if (command.includes('create variable') || command.includes('variable')) {
+        } else if (command.includes('variable') || command.includes('create variable')) {
             this.executeCommand('variable');
-        } else if (command.includes('create class') || command.includes('class')) {
+        } else if (command.includes('class') || command.includes('create class')) {
             this.executeCommand('class');
-        } else if (command.includes('add comment') || command.includes('comment')) {
+        } else if (command.includes('comment') || command.includes('add comment')) {
             this.executeCommand('comment');
-        } else if (command.includes('clear') || command.includes('reset')) {
-            this.clearOutput();
         } else {
-            this.showError(`Command not recognized: "${command}". Try: create function, create variable, create class, or add comment`);
+            // Use LLM for more complex requests
+            await this.generateCodeWithLLM(command);
         }
+    }
+
+    async generateCodeWithLLM(prompt) {
+        const language = this.languageSelect.value;
+        const llmStatus = this.showLLMStatus('🤖 Generating code with AI...');
+        
+        try {
+            // Using HuggingFace Inference API (free tier)
+            const response = await fetch('https://api-inference.huggingface.co/models/bigcode/starcoder2-15b', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer hf_demo', // Demo token for testing
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    inputs: `Generate ${language} code for: ${prompt}`,
+                    parameters: {
+                        max_new_tokens: 200,
+                        temperature: 0.7,
+                        return_full_text: false
+                    }
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const generatedCode = result[0]?.generated_text || `// Generated ${language} code for: ${prompt}\n// TODO: Implement functionality`;
+                this.appendToEditor(generatedCode);
+                this.showSuccess('✅ Code generated successfully!');
+            } else {
+                throw new Error('API request failed');
+            }
+        } catch (error) {
+            console.error('LLM generation error:', error);
+            // Fallback to template-based generation
+            this.generateFallbackCode(prompt, language);
+            this.showSuccess('✅ Generated with template (LLM unavailable)');
+        } finally {
+            llmStatus.remove();
+        }
+    }
+
+    generateFallbackCode(prompt, language) {
+        let code = '';
+        const lowerPrompt = prompt.toLowerCase();
+        
+        if (lowerPrompt.includes('function') || lowerPrompt.includes('method')) {
+            code = language === 'python' ? 
+                `def generated_function():\n    """${prompt}"""\n    pass\n` :
+                `function generatedFunction() {\n    // ${prompt}\n    return null;\n}\n`;
+        } else if (lowerPrompt.includes('class')) {
+            code = language === 'python' ?
+                `class GeneratedClass:\n    """${prompt}"""\n    def __init__(self):\n        pass\n` :
+                `class GeneratedClass {\n    // ${prompt}\n    constructor() {\n        \n    }\n}\n`;
+        } else {
+            code = `// ${prompt}\n// TODO: Implement this functionality\n`;
+        }
+        
+        this.appendToEditor(code);
+    }
+
+    appendToEditor(code) {
+        const currentContent = this.codeEditor.textContent;
+        const newContent = currentContent.includes('Your generated code will appear here') ? 
+            code : currentContent + '\n\n' + code;
+        this.codeEditor.textContent = newContent;
+    }
+
+    showLLMStatus(message) {
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'llm-status processing';
+        statusDiv.textContent = message;
+        this.codeEditor.parentNode.insertBefore(statusDiv, this.codeEditor);
+        return statusDiv;
     }
 
     executeCommand(type) {
@@ -174,7 +248,7 @@ const isActive = true;`,
             const timestamp = new Date().toLocaleTimeString();
             const code = this.codeTemplates[type];
             
-            this.codeOutput.textContent = `// Generated at ${timestamp}\n// Command: ${type}\n\n${code}`;
+            this.appendToEditor(`// Generated at ${timestamp}\n// Command: ${type}\n\n${code}`);
             this.showSuccess(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} code generated!`);
             
             // Auto-stop listening after successful command
@@ -277,12 +351,16 @@ function executeCommand(type) {
 }
 
 function copyCode() {
-    const code = document.getElementById('codeOutput').textContent;
+    const code = document.getElementById('codeEditor').textContent;
     navigator.clipboard.writeText(code).then(() => {
-        voiceApp.showSuccess('Code copied to clipboard!');
-    }).catch(() => {
-        voiceApp.showError('Failed to copy code');
+        alert('Code copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy code: ', err);
     });
+}
+
+function clearEditor() {
+    document.getElementById('codeEditor').textContent = '// Code editor cleared\n// Start speaking to generate new code!';
 }
 
 // Initialize the app

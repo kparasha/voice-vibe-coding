@@ -18,37 +18,24 @@
         "category": "Voice Vibe Coding"
       },
       {
+        "command": "voiceVibeCoding.showCommands",
+        "title": "Show Voice Commands",
+        "category": "Voice Vibe Coding"
+      },
+      {
         "command": "voiceVibeCoding.startVoiceCoding",
         "title": "Start Voice Coding",
-        "category": "Voice Vibe Coding"
-      },
-      {
-        "command": "voiceVibeCoding.stopVoiceCoding",
-        "title": "Stop Voice Coding",
-        "category": "Voice Vibe Coding"
-      },
-      {
-        "command": "voiceVibeCoding.confirmCommand",
-        "title": "Confirm Voice Command",
         "category": "Voice Vibe Coding"
       }
     ],
     "keybindings": [
       {
-        "command": "voiceVibeCoding.startVoiceCoding",
+        "command": "voiceVibeCoding.showCommands",
         "key": "cmd+shift+v",
         "mac": "cmd+shift+v",
         "win": "ctrl+shift+v",
         "linux": "ctrl+shift+v",
         "when": "editorTextFocus"
-      },
-      {
-        "command": "voiceVibeCoding.stopVoiceCoding",
-        "key": "cmd+shift+v",
-        "mac": "cmd+shift+v",
-        "win": "ctrl+shift+v",
-        "linux": "ctrl+shift+v",
-        "when": "voiceVibeCoding.isListening"
       }
     ]
   },

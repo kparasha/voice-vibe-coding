@@ -49,16 +49,16 @@ This backlog tracks features, improvements, and tasks for the Voice Vibe Coding 
 - [ ] Enhance collaborative coding features
 - [ ] Customizable voice command phrases
 
-## Critical Implementation Tasks (Based on Analysis)
+## Critical Implementation Tasks (Web-Based Focus)
 
-### Phase 1: Foundation & Core Pipeline
-- [ ] Fix VSCode extension configuration (package.json missing activationEvents, contributes)
-- [ ] Add webpack bundling configuration for proper extension packaging
-- [ ] Implement Fn key activation mechanism with immediate execution on release
-- [ ] Build seamless voice-to-AI pipeline (no manual Enter/clicks)
-- [ ] Integrate speech-to-text engine with real-time transcription
-- [ ] Create AI integration layer for autonomous code generation
-- [ ] Implement voice-based user controls (accept/reject/debug/undo)
+### Phase 1: Web Demo Enhancement
+- [x] Create web-based voice recognition interface
+- [x] Implement hold-to-speak activation (Space key like Fn key)
+- [x] Add seamless voice prompting without manual clicks
+- [ ] Integrate live code editor canvas (Monaco Editor or CodeMirror)
+- [ ] Connect free LLM API (Groq/HuggingFace) for real-time code generation
+- [ ] Build split-pane interface: voice input left, code canvas right
+- [ ] Implement voice-to-LLM-to-code pipeline with live updates
 
 ### Phase 2: Advanced Features
 - [ ] Add debug points and breakpoints in agentic flow
